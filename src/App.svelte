@@ -1,46 +1,32 @@
 <script lang="ts">
-    import { invoke } from '@tauri-apps/api/tauri';
+    import Welcome from './lib/Welcome.svelte';
 
-    let openStatus = 'Closed';
-    let packageCount = 0;
-    let packagesList = [];
-
-    async function onOpenManifest() {
-        try {
-            openStatus = 'Opening';
-            await invoke('open_manifest', {
-                manifestPath: '/Users/avranju/code/bevy/Cargo.toml',
-            });
-            openStatus = 'Opened';
-        } catch (err) {
-            openStatus = err;
-        }
+    enum Pane {
+        Welcome,
+        Main,
     }
 
-    async function onListPackages() {
-        try {
-            let packages: any = await invoke('list_packages');
-            packageCount = packages.length;
-            packagesList = packages;
-        } catch (err) {
-            openStatus = err;
-        }
+    let currentPane: Pane = Pane.Welcome;
+    let manifestPath: string = '';
+
+    function onOpenCargoFile({ detail }) {
+        manifestPath = detail;
+        currentPane = Pane.Main;
     }
 </script>
 
-<main>
-    <h1>Rust Examples Explorer</h1>
+<main class="container mx-auto">
+    <div style="display: {currentPane === Pane.Welcome ? 'block' : 'none'}">
+        <Welcome on:fileOpen={onOpenCargoFile} />
+    </div>
 
-    <button on:click={onOpenManifest}>Open Manifest</button>
-    <h3>Open Status:</h3>
-    <p>{openStatus}</p>
-
-    <button on:click={onListPackages}>List Packages</button>
-    <h3>List Packages:</h3>
-    <p>{packageCount}</p>
-    <ol>
-        {#each packagesList as pkg}
-            <li>{pkg.name}</li>
-        {/each}
-    </ol>
+    <div
+        style="display: {currentPane === Pane.Main ? 'block' : 'none'}"
+        class="grid grid-cols-2 gap-4"
+    >
+        <div>Cell 1</div>
+        <div>Cell 2</div>
+        <div>Cell 3</div>
+        <div>Cell 4</div>
+    </div>
 </main>
