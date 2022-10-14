@@ -10,6 +10,7 @@ export interface Package {
     id: string;
     name: string;
     version: string;
+    manifest_path: string;
     targets: Target[];
 }
 

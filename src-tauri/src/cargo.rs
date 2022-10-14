@@ -16,6 +16,7 @@ pub(crate) struct Package {
     pub(crate) id: PackageId,
     pub(crate) name: String,
     pub(crate) version: String,
+    pub(crate) manifest_path: String,
     pub(crate) targets: Vec<Target>,
 }
 
@@ -50,11 +51,13 @@ impl CargoReader {
                 let id = package.id.clone();
                 let name = package.name.clone();
                 let version = package.version.to_string();
+                let manifest_path = package.manifest_path.to_string();
 
                 Package {
                     id,
                     name,
                     version,
+                    manifest_path,
                     targets,
                 }
             })

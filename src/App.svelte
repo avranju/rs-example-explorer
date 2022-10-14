@@ -9,6 +9,7 @@
 
     enum Pane {
         Welcome,
+        Loading,
         Main,
     }
 
@@ -20,16 +21,23 @@
 
     async function onOpenCargoFile({ detail }) {
         manifestPath = detail;
-        await openManifest(manifestPath);
-        packages = (await listPackages()).filter(
-            (pkg) => listExamples(pkg).length > 0
-        );
-        currentPackage = packages.length > 0 ? packages[0] : null;
-        currentPane = Pane.Main;
+        currentPane = Pane.Loading;
 
-        if (!!currentPackage) {
-            await onListExamples(currentPackage);
-        }
+        // we do the actual work on the next tick because otherwise
+        // the "Loading..." pane doesn't get rendered (yeah, in spite
+        // of the 'await' in the code it still hangs :shrug:)
+        setTimeout(async () => {
+            await openManifest(manifestPath);
+            packages = (await listPackages()).filter(
+                (pkg) => listExamples(pkg).length > 0
+            );
+            currentPackage = packages.length > 0 ? packages[0] : null;
+            currentPane = Pane.Main;
+
+            if (!!currentPackage) {
+                await onListExamples(currentPackage);
+            }
+        }, 1);
     }
 
     function onCloseCargoFile() {
@@ -40,14 +48,41 @@
         currentPackage = null;
     }
 
+    function getManifestDir(path: string): string {
+        // strip '/Cargo.toml' from the end of the path
+        if (path.endsWith('/Cargo.toml')) {
+            return path.substring(0, path.length - 11);
+        }
+
+        return path;
+    }
+
+    function getExampleRelativePath(
+        pkg_path: string,
+        example_path: string
+    ): string {
+        // strip 'examples/' from the begining of the path
+        let path = example_path.substring(getManifestDir(pkg_path).length + 1);
+        if (path.startsWith('examples/')) {
+            return path.substring(9);
+        }
+
+        return path;
+    }
+
     function listExamples(pkg: Package): Target[] {
         return pkg.targets
             .filter((t) => t.kind.indexOf('example') !== -1)
-            .map((t) => ({
-                name: t.name,
-                kind: t.kind,
-                src_path: t.src_path.substring(manifestPath.length - 1),
-            }));
+            .map((t) => {
+                return {
+                    name: t.name,
+                    kind: t.kind,
+                    src_path: getExampleRelativePath(
+                        pkg.manifest_path,
+                        t.src_path
+                    ),
+                };
+            });
     }
 
     function examplesCount(pkg: Package): string {
@@ -68,21 +103,21 @@
         console.log('Running ' + target.name);
     }
 
+    // TODO: Remove this test code block before shipping.
     (async () => {
         await onOpenCargoFile({
-            detail: '/home/avranju/code/bevy/Cargo.toml',
+            detail: '/Users/avranju/code/bevy/Cargo.toml',
         });
-        if (!!currentPackage) {
-            await onListExamples(currentPackage);
-        }
     })();
 </script>
 
 <main>
-    {#if currentPane == Pane.Welcome}
+    {#if currentPane === Pane.Welcome}
         <div class="grid">
             <Welcome on:fileOpen={onOpenCargoFile} />
         </div>
+    {:else if currentPane === Pane.Loading}
+        <h1 class="grid text-xl text-white">Loading...</h1>
     {:else}
         <div
             class="grid grid-cols-4 gap-1 bg-gray-800 h-screen w-screen overflow-hidden"
@@ -124,17 +159,17 @@
                 {/if}
             </div>
             <div class="col-span-3 overflow-hidden">
-                <div class="grid grid-cols-5">
+                <div class="grid grid-cols-5 border-b-4 border-gray-400">
                     <h1
-                        class="col-span-4 border-b-4 border-gray-400 bg-slate-800 py-2 pr-2 text-xl text-gray-400 pl-2"
+                        class="col-span-4 bg-slate-800 text-xl text-gray-400 p-2"
                     >
-                        <kbd>{manifestPath}</kbd>
+                        {manifestPath}
                     </h1>
                     <h1
-                        class="border-b-4 border-gray-400 bg-gradient-to-l from-slate-700 to-slate-800 text-right text-xl text-gray-400"
+                        class="bg-gradient-to-l from-slate-700 to-slate-800 text-right text-xl text-gray-400"
                     >
                         <div
-                            class="w-8 h-8 bg-transparent float-right mt-1 mr-2 cursor-pointer"
+                            class="w-8 h-8 bg-transparent float-right py-2 pr-2 cursor-pointer"
                             title="Close Cargo File"
                             on:click={onCloseCargoFile}
                         >
