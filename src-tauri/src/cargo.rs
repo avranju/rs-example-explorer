@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use cargo_metadata::{Metadata, MetadataCommand};
+use cargo_metadata::{Metadata, MetadataCommand, PackageId};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -13,7 +13,9 @@ pub(crate) struct Target {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Package {
+    pub(crate) id: PackageId,
     pub(crate) name: String,
+    pub(crate) version: String,
     pub(crate) targets: Vec<Target>,
 }
 
@@ -45,9 +47,16 @@ impl CargoReader {
                     })
                     .collect();
 
+                let id = package.id.clone();
                 let name = package.name.clone();
+                let version = package.version.to_string();
 
-                Package { name, targets }
+                Package {
+                    id,
+                    name,
+                    version,
+                    targets,
+                }
             })
             .collect();
 
