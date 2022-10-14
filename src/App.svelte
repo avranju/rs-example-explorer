@@ -18,6 +18,7 @@
     let packages: Package[] = [];
     let examples: Target[] = [];
     let currentPackage: Package = null;
+    let exampleFilter: string = '';
 
     async function onOpenCargoFile({ detail }) {
         manifestPath = detail;
@@ -48,6 +49,12 @@
         currentPackage = null;
     }
 
+    async function onFilterChange() {
+        if (!!currentPackage) {
+            await onListExamples(currentPackage);
+        }
+    }
+
     function getManifestDir(path: string): string {
         // strip '/Cargo.toml' from the end of the path
         if (path.endsWith('/Cargo.toml')) {
@@ -72,7 +79,14 @@
 
     function listExamples(pkg: Package): Target[] {
         return pkg.targets
-            .filter((t) => t.kind.indexOf('example') !== -1)
+            .filter((t) => {
+                let filter_str = exampleFilter.toLowerCase();
+                return (
+                    t.kind.indexOf('example') !== -1 &&
+                    (t.name.toLowerCase().indexOf(filter_str) !== -1 ||
+                        t.src_path.toLowerCase().indexOf(filter_str) !== -1)
+                );
+            })
             .map((t) => {
                 return {
                     name: t.name,
@@ -159,12 +173,19 @@
                 {/if}
             </div>
             <div class="col-span-3 overflow-hidden">
-                <div class="grid grid-cols-5 border-b-4 border-gray-400">
+                <div class="grid grid-cols-8 border-b-4 border-gray-400">
                     <h1
                         class="col-span-4 bg-slate-800 text-xl text-gray-400 p-2"
                     >
                         {manifestPath}
                     </h1>
+                    <input
+                        type="text"
+                        placeholder="Filter Examples"
+                        class="col-span-3 pl-2 mr-4"
+                        bind:value={exampleFilter}
+                        on:input={onFilterChange}
+                    />
                     <h1
                         class="bg-gradient-to-l from-slate-700 to-slate-800 text-right text-xl text-gray-400"
                     >
