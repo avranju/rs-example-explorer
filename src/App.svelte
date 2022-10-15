@@ -116,13 +116,6 @@
     function runExample(target: Target) {
         console.log('Running ' + target.name);
     }
-
-    // TODO: Remove this test code block before shipping.
-    (async () => {
-        await onOpenCargoFile({
-            detail: '/Users/avranju/code/bevy/Cargo.toml',
-        });
-    })();
 </script>
 
 <main>
