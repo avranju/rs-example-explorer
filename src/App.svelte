@@ -6,6 +6,7 @@
         type Package,
         type Target,
     } from './cargo';
+    import Node from './lib/Node.svelte';
 
     enum Pane {
         Welcome,
@@ -116,6 +117,12 @@
     function runExample(target: Target) {
         console.log('Running ' + target.name);
     }
+
+    (async () => {
+        await onOpenCargoFile({
+            detail: '/Users/avranju/code/bevy/Cargo.toml',
+        });
+    })();
 </script>
 
 <main>
@@ -141,21 +148,30 @@
                     >
                         {#each packages as pkg}
                             <div
-                                class="grid cursor-pointer grid-cols-1 border-b-2 border-gray-500 pl-2 pb-3 hover:bg-slate-800 {pkg.id ===
+                                class="cursor-pointer border-b-2 border-gray-500 hover:bg-slate-800 {pkg.id ===
                                 currentPackage.id
                                     ? 'bg-slate-800'
                                     : 'bg-slate-700'}"
                                 on:click={() => onListExamples(pkg)}
                             >
-                                <div class="text-lg font-bold">
-                                    {pkg.name}
-                                </div>
-                                <div class="ml-4 text-sm">
-                                    {pkg.version}
-                                </div>
-                                <div class="ml-4 text-sm text-right mr-2">
-                                    {examplesCount(pkg)}
-                                </div>
+                                <Node id={pkg.id}>
+                                    <div slot="header">
+                                        <div class="text-lg font-bold ml-2">
+                                            {pkg.name}
+                                        </div>
+                                        <div class="text-sm ml-2">
+                                            {pkg.version} /
+                                            {examplesCount(pkg)}
+                                        </div>
+                                    </div>
+                                    <div slot="content">
+                                        <Node id={`${pkg.id}-1`} nestLevel={1}>
+                                            <div slot="header">
+                                                Some content.
+                                            </div>
+                                        </Node>
+                                    </div>
+                                </Node>
                             </div>
                         {/each}
                     </div>
