@@ -5,6 +5,10 @@
         listPackages,
         type Package,
         type Target,
+        groupByFolder,
+        Folder,
+        listExamples,
+        locateFolder,
     } from './cargo';
     import Node from './lib/Node.svelte';
 
@@ -16,10 +20,10 @@
 
     let currentPane: Pane = Pane.Welcome;
     let manifestPath: string = '';
-    let packages: Package[] = [];
-    let examples: Target[] = [];
-    let currentPackage: Package = null;
+    let folders: Folder[] = [];
+    let currentFolder: Folder = null;
     let exampleFilter: string = '';
+    let selectedFolderId: string = '';
 
     async function onOpenCargoFile({ detail }) {
         manifestPath = detail;
@@ -30,97 +34,45 @@
         // of the 'await' in the code it still hangs :shrug:)
         setTimeout(async () => {
             await openManifest(manifestPath);
-            packages = (await listPackages()).filter(
-                (pkg) => listExamples(pkg).length > 0
-            );
-            currentPackage = packages.length > 0 ? packages[0] : null;
+            currentFolder = null;
+            folders = (await listPackages())
+                .map((pkg) => [pkg, listExamples(pkg, exampleFilter)])
+                .filter(([_, examples]) => (examples as Target[]).length > 0)
+                .map(([pkg, examples]) => {
+                    return groupByFolder(pkg as Package, examples as Target[]);
+                });
             currentPane = Pane.Main;
-
-            if (!!currentPackage) {
-                await onListExamples(currentPackage);
-            }
         }, 1);
     }
 
     function onCloseCargoFile() {
         currentPane = Pane.Welcome;
         manifestPath = '';
-        packages = [];
-        examples = [];
-        currentPackage = null;
+        folders = [];
+        currentFolder = null;
     }
 
-    async function onFilterChange() {
-        if (!!currentPackage) {
-            await onListExamples(currentPackage);
-        }
-    }
-
-    function getManifestDir(path: string): string {
-        // strip '/Cargo.toml' from the end of the path
-        if (path.endsWith('/Cargo.toml')) {
-            return path.substring(0, path.length - 11);
-        }
-
-        return path;
-    }
-
-    function getExampleRelativePath(
-        pkg_path: string,
-        example_path: string
-    ): string {
-        // strip 'examples/' from the begining of the path
-        let path = example_path.substring(getManifestDir(pkg_path).length + 1);
-        if (path.startsWith('examples/')) {
-            return path.substring(9);
-        }
-
-        return path;
-    }
-
-    function listExamples(pkg: Package): Target[] {
-        return pkg.targets
-            .filter((t) => {
-                let filter_str = exampleFilter.toLowerCase();
-                return (
-                    t.kind.indexOf('example') !== -1 &&
-                    (t.name.toLowerCase().indexOf(filter_str) !== -1 ||
-                        t.src_path.toLowerCase().indexOf(filter_str) !== -1)
-                );
-            })
-            .map((t) => {
-                return {
-                    name: t.name,
-                    kind: t.kind,
-                    src_path: getExampleRelativePath(
-                        pkg.manifest_path,
-                        t.src_path
-                    ),
-                };
-            });
-    }
-
-    function examplesCount(pkg: Package): string {
-        let eg = listExamples(pkg);
-        return eg.length > 0
-            ? eg.length === 1
-                ? `${eg.length} example`
-                : `${eg.length} examples`
-            : '';
-    }
-
-    async function onListExamples(pkg: Package) {
-        examples = listExamples(pkg);
-        currentPackage = pkg;
-    }
+    async function onFilterChange() {}
 
     function runExample(target: Target) {
         console.log('Running ' + target.name);
     }
 
+    function onSelectedFolderChange(event) {
+        selectedFolderId = event.detail.id;
+
+        currentFolder = null;
+        for (const folder of folders) {
+            currentFolder = locateFolder(folder, selectedFolderId);
+            if (!!currentFolder) {
+                break;
+            }
+        }
+    }
+
     (async () => {
         await onOpenCargoFile({
-            detail: '/Users/avranju/code/bevy/Cargo.toml',
+            detail: 'C:\\Code\\nannou\\Cargo.toml',
         });
     })();
 </script>
@@ -142,36 +94,19 @@
                 >
                     Packages
                 </h1>
-                {#if packages.length > 0}
+                {#if folders.length > 0}
                     <div
                         class="text-slate-300 h-screen overflow-y-scroll overscroll-contain"
                     >
-                        {#each packages as pkg}
+                        {#each folders as folder}
                             <div
-                                class="cursor-pointer border-b-2 border-gray-500 hover:bg-slate-800 {pkg.id ===
-                                currentPackage.id
-                                    ? 'bg-slate-800'
-                                    : 'bg-slate-700'}"
-                                on:click={() => onListExamples(pkg)}
+                                class="cursor-pointer border-b-2 border-gray-500 pb-4"
                             >
-                                <Node id={pkg.id}>
-                                    <div slot="header">
-                                        <div class="text-lg font-bold ml-2">
-                                            {pkg.name}
-                                        </div>
-                                        <div class="text-sm ml-2">
-                                            {pkg.version} /
-                                            {examplesCount(pkg)}
-                                        </div>
-                                    </div>
-                                    <div slot="content">
-                                        <Node id={`${pkg.id}-1`} nestLevel={1}>
-                                            <div slot="header">
-                                                Some content.
-                                            </div>
-                                        </Node>
-                                    </div>
-                                </Node>
+                                <Node
+                                    {folder}
+                                    {selectedFolderId}
+                                    on:selected={onSelectedFolderChange}
+                                />
                             </div>
                         {/each}
                     </div>
@@ -184,7 +119,8 @@
             <div class="col-span-3 overflow-hidden">
                 <div class="grid grid-cols-8 border-b-4 border-gray-400">
                     <h1
-                        class="col-span-4 bg-slate-800 text-xl text-gray-400 p-2"
+                        class="col-span-4 bg-slate-800 text-xl text-gray-400 p-2 text-ellipsis overflow-hidden"
+                        title={manifestPath}
                     >
                         {manifestPath}
                     </h1>
@@ -208,11 +144,9 @@
                     </h1>
                 </div>
 
-                <div
-                    class="text-slate-100 grid grid-cols-4 gap-6 p-4 h-screen overflow-y-scroll overscroll-contain pb-28"
-                >
-                    {#if packages.length > 0}
-                        {#each examples as eg}
+                <div class="text-slate-100 grid grid-cols-4 gap-6 p-4 pb-28">
+                    {#if currentFolder !== null}
+                        {#each currentFolder.targets as eg}
                             <div
                                 class="h-28 cursor-pointer rounded-md bg-slate-600 text-center shadow-md shadow-black hover:bg-slate-700"
                                 title="Run Example"
