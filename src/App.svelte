@@ -11,6 +11,8 @@
         locateFolder,
     } from './cargo';
     import Node from './lib/Node.svelte';
+    import { fade } from 'svelte/transition';
+    import { quintOut } from 'svelte/easing';
 
     enum Pane {
         Welcome,
@@ -144,11 +146,18 @@
                     </h1>
                 </div>
 
-                <div class="text-slate-100 grid grid-cols-4 gap-6 p-4 pb-28">
+                <div
+                    class="text-slate-100 grid grid-cols-4 content-start gap-6 p-4 pb-28 h-screen overflow-y-scroll overscroll-contain"
+                >
                     {#if currentFolder !== null}
                         {#each currentFolder.targets as eg}
                             <div
                                 class="h-28 cursor-pointer rounded-md bg-slate-600 text-center shadow-md shadow-black hover:bg-slate-700"
+                                transition:fade={{
+                                    duration: 300,
+                                    delay: 250,
+                                    easing: quintOut,
+                                }}
                                 title="Run Example"
                                 on:click={() => runExample(eg)}
                             >
@@ -165,9 +174,6 @@
                                     {eg.src_path}
                                 </div>
                                 <div class="text-right">
-                                    <!-- <button class="bg-slate-800 rounded-tl-md"
-                                    ><img src="play.svg" alt="Play" /></button
-                                > -->
                                     <div class="float-right mt-2">
                                         <img
                                             src="play.svg"
