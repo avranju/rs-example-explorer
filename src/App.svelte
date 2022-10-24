@@ -8,6 +8,7 @@
         Folder,
         listExamples,
         locateFolder,
+        runExample,
     } from './cargo';
     import Node from './lib/Node.svelte';
     import { fade } from 'svelte/transition';
@@ -54,8 +55,9 @@
 
     async function onFilterChange() {}
 
-    function runExample(target: Target) {
-        console.log('Running ' + target.name);
+    function onRunExample(target: Target) {
+        // we intentionally don't await this promise
+        runExample(manifestPath, target.name);
     }
 
     function onSelectedFolderChange(event) {
@@ -157,7 +159,7 @@
                                     easing: quintOut,
                                 }}
                                 title="Run Example"
-                                on:click={() => runExample(eg)}
+                                on:click={() => onRunExample(eg)}
                             >
                                 <h2
                                     class="truncate text-lg text-center bg-gray-900 pr-2 py-1"

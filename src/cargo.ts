@@ -20,6 +20,13 @@ export async function listPackages(manifestPath: string): Promise<Package[]> {
     });
 }
 
+export async function runExample(manifestPath: string, exampleName: string) {
+    await invoke('run_example', {
+        manifestPath,
+        exampleName,
+    });
+}
+
 export enum FolderType {
     Package,
     Folder,
