@@ -1,7 +1,6 @@
 <script lang="ts">
     import Welcome from './lib/Welcome.svelte';
     import {
-        openManifest,
         listPackages,
         type Package,
         type Target,
@@ -35,9 +34,8 @@
         // the "Loading..." pane doesn't get rendered (yeah, in spite
         // of the 'await' in the code it still hangs :shrug:)
         setTimeout(async () => {
-            await openManifest(manifestPath);
             currentFolder = null;
-            folders = (await listPackages())
+            folders = (await listPackages(manifestPath))
                 .map((pkg) => [pkg, listExamples(pkg, exampleFilter)])
                 .filter(([_, examples]) => (examples as Target[]).length > 0)
                 .map(([pkg, examples]) => {
@@ -74,7 +72,7 @@
 
     (async () => {
         await onOpenCargoFile({
-            detail: 'C:\\Code\\nannou\\Cargo.toml',
+            detail: '/home/avranju/code/bevy/Cargo.toml',
         });
     })();
 </script>
@@ -102,7 +100,7 @@
                     >
                         {#each folders as folder}
                             <div
-                                class="cursor-pointer border-b-2 border-gray-500 pb-4"
+                                class="cursor-pointer border-b-2 border-gray-500 pb-2"
                             >
                                 <Node
                                     {folder}

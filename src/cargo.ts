@@ -14,14 +14,10 @@ export interface Package {
     targets: Target[];
 }
 
-export async function openManifest(manifestPath: string) {
-    await invoke('open_manifest', {
+export async function listPackages(manifestPath: string): Promise<Package[]> {
+    return await invoke('list_packages', {
         manifestPath,
     });
-}
-
-export async function listPackages(): Promise<Package[]> {
-    return await invoke('list_packages');
 }
 
 export enum FolderType {
